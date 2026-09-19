@@ -8,16 +8,15 @@ return new class extends Migration {
     public function up(): void {
         Schema::create('tasks', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('course_id')->constrained()->cascadeOnDelete();
+            $table->string('token')->index(); // Kolom token untuk unik URL per perangkat
+            $table->string('course');         // Langsung string course sesuai inputan form
             $table->string('title');
-            $table->text('description')->nullable();
             $table->dateTime('deadline');
             $table->float('weight')->default(10.0);
             $table->integer('difficulty')->default(3);
             $table->float('estimated_hours')->default(2.0);
             $table->float('priority_score')->default(0);
-            $table->enum('status', ['Pending', 'In Progress', 'Completed'])->default('Pending');
+            $table->boolean('is_completed')->default(false);
             $table->timestamps();
         });
     }
