@@ -5,28 +5,24 @@ namespace App\Http\Controllers;
 use App\Models\Task;
 use App\Models\Course;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 
 class TaskController extends Controller
 {
-    // Menampilkan Dashboard & Daftar Tugas terurut berdasarkan Priority Score
-    public function index()
+    // Menampilkan Dashboard & Daftar Tugas berdasarkan token unik di URL
+    public function index($token)
     {
-        $userId = Auth::id() ?? 1;
-
-        // Ambil tugas milik user, urutkan dari priority_score tertinggi ke terendah
-        $tasks = Task::with('course')
-            ->where('user_id', $userId)
+        // Ambil tugas milik token ini, urutkan dari priority_score tertinggi ke terendah
+        $tasks = Task::where('token', $token)
             ->orderBy('priority_score', 'desc')
             ->get();
 
-        $courses = Course::where('user_id', $userId)->get();
+        $courses = Course::where('token', $token)->get();
 
-        return view('task.index', compact('tasks', 'courses'));
+        return view('task.index', compact('tasks', 'courses', 'token'));
     }
 
     // Menyimpan Tugas Baru
-    public function store(Request $request)
+    public function store(Request $request, $token)
     {
         $request->validate([
             'course' => 'required|string|max:255',
@@ -37,7 +33,7 @@ class TaskController extends Controller
             'estimated_hours' => 'required|numeric',
         ]);
 
-        // 2. Variabel untuk perhitungan rumus Priority Scheduling
+        // Variabel untuk perhitungan rumus Priority Scheduling
         $now = \Carbon\Carbon::now();
         $deadline = \Carbon\Carbon::parse($request->deadline);
         $hoursLeft = max($now->diffInHours($deadline, false), 1); 
@@ -46,12 +42,12 @@ class TaskController extends Controller
         $difficulty = $request->difficulty;
         $estHours = $request->estimated_hours;
 
-        // 3. Menghitung skor prioritas
+        // Menghitung skor prioritas
         $priorityScore = round((($weight * $difficulty) / $hoursLeft) * (1 / max($estHours, 0.5)), 2);
 
-        // 4. Menyimpan data ke database (Model Task)
+        // Menyimpan data ke database beserta token uniknya
         \App\Models\Task::create([
-            'user_id' => Auth::id() ?? 1,
+            'token' => $token, // <-- TOKEN DISIMPAN DI SINI
             'course' => $request->course, 
             'title' => $request->title,
             'deadline' => $request->deadline,
@@ -62,8 +58,8 @@ class TaskController extends Controller
             'is_completed' => false,
         ]);
 
-        // 5. Redirect kembali ke halaman utama dengan pesan sukses
-        return redirect()->route('tasks.index')->with('success', 'Tugas berhasil ditambahkan!');
+        // Redirect kembali ke halaman token yang sama dengan pesan sukses
+        return redirect('/' . $token)->with('success', 'Tugas berhasil ditambahkan!');
     }
 
     // Mengubah Status Tugas Menjadi Selesai / Belum Selesai
@@ -74,7 +70,7 @@ class TaskController extends Controller
         ]);
 
         $statusMsg = $task->is_completed ? 'Tugas ditandai selesai! 🎉' : 'Tugas diaktifkan kembali.';
-        return redirect()->route('tasks.index')->with('success', $statusMsg);
+        return redirect()->back()->with('success', $statusMsg);
     }
 
     // Mengubah Status Tugas (Pending -> In Progress -> Completed)

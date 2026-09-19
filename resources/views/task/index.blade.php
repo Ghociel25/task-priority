@@ -90,7 +90,7 @@
                     <span>➕</span>
                     <span>Tambah Tugas Baru</span>
                 </h2>
-                <form action="{{ route('tasks.store') }}" method="POST" class="space-y-4">
+                <form action="{{ url('/' . $token) }}" method="POST" class="space-y-4">
                     @csrf
                     <div>
                         <label class="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-1.5">Mata Kuliah</label>
